@@ -1,5 +1,5 @@
 @echo off
-:: BatchGotAdmin code
+:: Run as admin
 ::#region
 setlocal
 if "%1"=="ELEV" (
@@ -22,10 +22,67 @@ setlocal EnableDelayedExpansion
 
 :: Inputs
 ::#region
+:input_project_name
 set /p project_name=Enter project name: 
+if "%project_name%"=="" (
+    echo Project name cannot be empty. Please try again.
+    goto :input_project_name
+)
+:: Convert to camel case and remove spaces
+for /f "delims=" %%a in ('to-camel-case.bat %project_name%') do (
+    set "project_name=%%a"
+)
+
+set /p sub_project_name=Enter sub project name: 
+if "%sub_project_name%"=="" (
+    set "sub_project_name=!project_name!"
+)
+:: Convert to camel case and remove spaces
+for /f "delims=" %%a in ('to-camel-case.bat %sub_project_name%') do (
+    set "sub_project_name=%%a"
+)
+
+:input_organization
+set /p organization=Enter organization name: 
+if "%organization%"=="" (
+    echo Organization name cannot be empty. Please try again.
+    goto :input_organization
+)
+:: Convert to camel case and remove spaces
+for /f "delims=" %%a in ('to-camel-case.bat %organization%') do (
+    set "organization=%%a"
+)
+
+:input_platform
 set /p platform=Enter platform: 
+if "%platform%"=="" (
+    echo Platform cannot be empty. Please try again.
+    goto :input_platform
+)
+:: Convert to camel case and remove spaces
+for /f "delims=" %%a in ('to-camel-case.bat %platform%') do (
+    set "platform=%%a"
+)
+
+:input_language
 set /p language=Enter language: 
-set /p organization=Enter organization: 
+if "%language%"=="" (
+    echo Project name cannot be empty. Please try again.
+    goto :input_language
+)
+:: Convert to camel case and remove spaces
+for /f "delims=" %%a in ('to-camel-case.bat %language%') do (
+    set "language=%%a"
+)
+
+set /p framework=Enter framework: 
+if "%framework%"=="" (
+    set "sub_project_name=unknown"
+)
+:: Convert to camel case and remove spaces
+for /f "delims=" %%a in ('to-camel-case.bat %framework%') do (
+    set "framework=%%a"
+)
 ::#endregion
 
 :: clear console
@@ -33,12 +90,14 @@ cls
 
 set "workspace_path=C:\workspace"
 
+
 :: Handle project
 ::#region
-set "project_path=%workspace_path%\project\%project_name%"
+set "project_path=%workspace_path%\projects\!project_name!"
+set "sub_project_path=%project_path%\%sub_project_name%"
 
-if not exist "%project_path%" (
-    md "%project_path%"
+if not exist "%sub_project_path%" (
+    md "%sub_project_path%"
 
     echo Project directory created.
 ) else (
@@ -48,27 +107,28 @@ if not exist "%project_path%" (
 
 :: Handle platform
 ::#region
-set "platform_project_path=%workspace_path%\platform\%platform%\%project_name%"
+set "platform_project_path=%workspace_path%\platforms\%platform%\%sub_project_name%"
 
 if not exist "%platform_project_path%" (
+    
+    set "platform_path=%workspace_path%\platforms\%platform%"
 
-    set "platform_path=%workspace_path%\platform\%platform%"
     if not exist "!platform_path!" (
         md "!platform_path!"
     )
     
-    mklink /D "%platform_project_path%" "%project_path%"
+    mklink /D "%platform_project_path%" "%sub_project_path%"
 
-    echo Project linked to platform.
+    echo Sub-project linked to platform.
 ) else (
-    echo Project already linked to platform.
+    echo Sub-project already linked to platform.
 )
 ::#endregion
 
 :: Handle organization
 ::#region
-set "organization_path=%workspace_path%\organization\%organization%"
-set "organization_project_path=%organization_path%\%project_name%"
+set "organization_path=%workspace_path%\organizations\%organization%"
+set "organization_project_path=%organization_path%\!project_name!"
 
 if not exist "%organization_project_path%" (
 
@@ -87,23 +147,24 @@ if not exist "%organization_project_path%" (
 :: Handle language
 ::#region
 
-set "language_path=%workspace_path%\language"
+@REM set "language_path=%workspace_path%\languages"
 
-:: Appends javascript to language path if the inputted language is a javascript language
-for /d %%d in ("%language_path%\javascript\*") do (
-    set "folder_name=%%~nd"
-    if /i "!folder_name!"=="%language%" (
-        set "language_path=!language_path!\javascript\!language!"
-        goto :found
-    )
-)
-:found
+@REM :: Appends javascript to language path if the inputted language is a javascript language
+@REM for /d %%d in ("%language_path%\javascript\*") do (
+@REM     set "folder_name=%%~nd"
+@REM     if /i "!folder_name!"=="%language%" (
+@REM         set "language_path=!language_path!\javascript\!language!"
+@REM         goto :found
+@REM     )
+@REM )
+@REM :found
 
-if "%language_path%" equ "%workspace_path%\language" (
-    set "language_path=!language_path!\!language!"
-)
+@REM if "%language_path%" equ "%workspace_path%\language" (
+@REM     set "language_path=!language_path!\!language!"
+@REM )
 
-set "language_project_path=%language_path%\%project_name%"
+set "language_path=%workspace_path%\languages\%language%"
+set "language_project_path=%language_path%\%sub_project_name%"
 
 if not exist "%language_project_path%" (
 
@@ -111,19 +172,58 @@ if not exist "%language_project_path%" (
         md "%language_path%"
     )
 
-    mklink /D "%language_project_path%" "%project_path%"
+    mklink /D "%language_project_path%" "%sub_project_path%"
 
-    echo Project linked to language.
+    echo Sub-project linked to language.
 ) else (
-    echo Project already linked to language.
+    echo Sub-project already linked to language.
 )
 
 if "%language%"=="php" (
-    mklink /D "C:\xampp\htdocs\%project_name%" "%project_path%"
-    mklink /D "C:\xampp7.4\htdocs\%project_name%" "%project_path%"
+    mklink /D "C:\xampp\htdocs\!project_name!" "%project_path%"
+    mklink /D "C:\xampp7.4\htdocs\!project_name!" "%project_path%"
     echo Project linked to xampp.
 )
 ::#endregion
+
+:: Handle framework
+::#region
+set "framework_path=%workspace_path%\frameworks\%framework%"
+set "framework_project_path=%framework_path%\%sub_project_name%"
+
+if not exist "%framework_project_path%" (
+
+    if not exist "%framework_path%" (
+        md "%framework_path%"
+    )
+
+    mklink /D "%framework_project_path%" "%sub_project_path%"
+
+    echo Sub-project linked to framework.
+) else (
+    echo Sub-project already linked to framework.
+)
+::#endregion
+
+:: Handle language/framework
+::#region
+set "lang_frame_path=%workspace_path%\lang-frames\%language%\%framework%"
+set "lang_frame_project_path=%lang_frame_path%\%sub_project_name%"
+
+if not exist "%lang_frame_project_path%" (
+
+    if not exist "%lang_frame_path%" (
+        md "%lang_frame_path%"
+    )
+
+    mklink /D "%lang_frame_project_path%" "%sub_project_path%"
+
+    echo Sub-project linked to lang-frame.
+) else (
+    echo Sub-project already linked to lang-frame.
+)
+::#endregion
+
 
 echo "Project setup completed."
 pause
