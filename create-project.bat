@@ -162,15 +162,7 @@ if not exist "%language_project_path%" (
     echo Sub-project already linked to language.
 )
 
-:: Convert the language variable to lowercase
-set "language_lowercase=%language:~0,4%"
-for %%a in ( "A=a" "B=b" "C=c" "D=d" "E=e" "F=f" "G=g" "H=h" "I=i" 
-                "J=j" "K=k" "L=l" "M=m" "N=n" "O=o" "P=p" "Q=q" "R=r" 
-                "S=s" "T=t" "U=u" "V=v" "W=w" "X=x" "Y=y" "Z=z") do (
-             set "language_lowercase=!language_lowercase:%%~a!"
-        )
-
-if "!language_lowercase!"=="php" (
+if /i "!language!"=="php" (
     mklink /D "C:\xampp\htdocs\!project_name!" "%project_path%"
     mklink /D "C:\xampp7.4\htdocs\!project_name!" "%project_path%"
     echo Project linked to xampp.
