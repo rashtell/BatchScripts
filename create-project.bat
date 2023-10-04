@@ -146,23 +146,6 @@ if not exist "%organization_project_path%" (
 
 :: Handle language
 ::#region
-
-@REM set "language_path=%workspace_path%\languages"
-
-@REM :: Appends javascript to language path if the inputted language is a javascript language
-@REM for /d %%d in ("%language_path%\javascript\*") do (
-@REM     set "folder_name=%%~nd"
-@REM     if /i "!folder_name!"=="%language%" (
-@REM         set "language_path=!language_path!\javascript\!language!"
-@REM         goto :found
-@REM     )
-@REM )
-@REM :found
-
-@REM if "%language_path%" equ "%workspace_path%\language" (
-@REM     set "language_path=!language_path!\!language!"
-@REM )
-
 set "language_path=%workspace_path%\languages\%language%"
 set "language_project_path=%language_path%\%sub_project_name%"
 
