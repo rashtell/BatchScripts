@@ -38,8 +38,7 @@ if errorlevel 1 (
 set "selected_project="
 set "project="
 
-:: Display existing project names with numbered indices
-echo Existing Projects:
+:: Display existing folder names with numbered indices
 set "index=0"
 for /d %%i in ("%directory%\*") do (
     set /a "index+=1"
@@ -67,14 +66,16 @@ for /f "delims=0123456789" %%a in ("!input!") do (
 
 if "!selected_project!"=="" (
     if !isNumber!==true (
-        echo Invalid input. Please enter a valid project index or name.
+        echo Invalid input. Please enter a valid index or name.
         goto :input_loop
     ) else if  "%input%"=="" (
-        echo Invalid input. Please enter a valid project index or name.
+        echo Invalid input. Please enter a valid index or name.
         goto :input_loop
     ) else (
         set "selected_project=%input%"
     )
 )
+
+cls
 
 echo !selected_project!
