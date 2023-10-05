@@ -158,8 +158,8 @@ if not exist "%language_project_path%" (
 )
 
 if /i "!language!"=="php" (
-    mklink /D "C:\xampp\htdocs\!project_name!" "%project_path%"
-    mklink /D "C:\xampp7.4\htdocs\!project_name!" "%project_path%"
+    mklink /D "C:\xampp\htdocs\!sub_project_name!" "%sub_project_path%"
+    mklink /D "C:\xampp7.4\htdocs\!sub_project_name!" "%sub_project_path%"
     echo Project linked to xampp.
 )
 ::#endregion
