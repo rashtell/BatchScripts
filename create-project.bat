@@ -1,20 +1,15 @@
 @echo off
-:: Run as admin
+:: Elevate the current console window to admin
 ::#region
 setlocal
-if "%1"=="ELEV" (
-    shift
-    goto main
-)
-:: Self-elevate using a VBScript hidden window
-set "vbs=%temp%\getadmin.vbs"
-echo Set UAC = CreateObject^("Shell.Application"^)>"%vbs%"
-echo UAC.ShellExecute "%~s0", "ELEV %*", "", "runas", 1 >>"%vbs%"
-"%temp%\getadmin.vbs"
-del "%temp%\getadmin.vbs"
-exit /b
+cd /d "%~dp0"
+>nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
 
-:main
+if "%errorlevel%" NEQ "0" (
+    powershell -Command "Start-Process '%0' -Verb RunAs"
+    exit /b
+)
+endlocal
 ::#endregion
 
 :: Actual script starts here
