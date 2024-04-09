@@ -33,7 +33,7 @@ setlocal EnableDelayedExpansion
 
     ::#region Check if the projects path is empty
     set "is_projects_path_empty=true"
-    for /f %%i in ('dir /b "!projects_path!"') do (
+    for /f %%i in ('dir /b /ad "!projects_path!" 2^>null') do (
         set "is_projects_path_empty=false"
         goto :projects_path_check_end
     )
@@ -77,7 +77,7 @@ setlocal EnableDelayedExpansion
             :: List the projects with indexes
             echo 0. New Project
             set "index=0"
-            for /f "tokens=*" %%i in ('dir /b /ad "!projects_path!"') do (
+            for /f "tokens=*" %%i in ('dir /b /ad "!projects_path!" 2^>null') do (
                 set /a "index+=1"
                 echo !index!. %%i
             )
@@ -91,7 +91,7 @@ setlocal EnableDelayedExpansion
             ) else if "!choice!" GEQ "1" (
                 :: Find the corresponding project
                 set "current_index=0"
-                for /f "tokens=*" %%i in ('dir /b /ad "!projects_path!"') do (        
+                for /f "tokens=*" %%i in ('dir /b /ad "!projects_path!" 2^>null') do (        
                     set /a "current_index+=1"
                     if "!current_index!"=="!choice!" (
                         set "project_name=%%i"
@@ -121,7 +121,7 @@ setlocal EnableDelayedExpansion
 
     ::#region Check if the sub-projects path is empty
     set "is_sub_projects_path_empty=true"
-    for /f %%i in ('dir /b "!sub_projects_path!"') do (
+    for /f %%i in ('dir /b /ad "!sub_projects_path!" 2^>null') do (
         set "is_sub_projects_path_empty=false"
         goto :sub_projects_path_check_end
     )
@@ -165,7 +165,7 @@ setlocal EnableDelayedExpansion
             :: List the sub-projects with indexes
             echo 0. New Sub-project
             set "index=0"
-            for /f "tokens=*" %%i in ('dir /b /ad "!sub_projects_path!"') do (
+            for /f "tokens=*" %%i in ('dir /b /ad "!sub_projects_path!" 2^>null') do (
                 set /a "index+=1"
                 echo !index!. %%i
             )
@@ -179,7 +179,7 @@ setlocal EnableDelayedExpansion
             ) else if "!choice!" GEQ "1" (
                 :: Find the corresponding sub-project
                 set "current_index=0"
-                for /f "tokens=*" %%i in ('dir /b /ad "!sub_projects_path!"') do (        
+                for /f "tokens=*" %%i in ('dir /b /ad "!sub_projects_path!" 2^>null') do (        
                     set /a "current_index+=1"
                     if "!current_index!"=="!choice!" (
                         set "sub_project_name=%%i"
@@ -213,7 +213,7 @@ setlocal EnableDelayedExpansion
 
     ::#region Check if the organizations path is empty
     set "is_organizations_path_empty=true"
-    for /f %%i in ('dir /b "!organizations_path!"') do (
+    for /f %%i in ('dir /b /ad "!organizations_path!" 2^>null') do (
         set "is_organizations_path_empty=false"
         goto :organizations_path_check_end
     )
@@ -257,7 +257,7 @@ setlocal EnableDelayedExpansion
             :: List the organizations with indexes
             echo 0. New Organization
             set "index=0"
-            for /f "tokens=*" %%i in ('dir /b /ad "!organizations_path!"') do (
+            for /f "tokens=*" %%i in ('dir /b /ad "!organizations_path!" 2^>null') do (
                 set /a "index+=1"
                 echo !index!. %%i
             )
@@ -271,7 +271,7 @@ setlocal EnableDelayedExpansion
             ) else if "!choice!" GEQ "1" (
                 :: Find the corresponding organization
                 set "current_index=0"
-                for /f "tokens=*" %%i in ('dir /b /ad "!organizations_path!"') do (        
+                for /f "tokens=*" %%i in ('dir /b /ad "!organizations_path!" 2^>null') do (        
                     set /a "current_index+=1"
                     if "!current_index!"=="!choice!" (
                         set "organization_name=%%i"
@@ -305,7 +305,7 @@ setlocal EnableDelayedExpansion
 
     ::#region Check if the platforms path is empty
     set "is_platforms_path_empty=true"
-    for /f %%i in ('dir /b "!platforms_path!"') do (
+    for /f %%i in ('dir /b /ad "!platforms_path!" 2^>null') do (
         set "is_platforms_path_empty=false"
         goto :platforms_path_check_end
     )
@@ -349,7 +349,7 @@ setlocal EnableDelayedExpansion
             :: List the platforms with indexes
             echo 0. New Platform
             set "index=0"
-            for /f "tokens=*" %%i in ('dir /b /ad "!platforms_path!"') do (
+            for /f "tokens=*" %%i in ('dir /b /ad "!platforms_path!" 2^>null') do (
                 set /a "index+=1"
                 echo !index!. %%i
             )
@@ -363,7 +363,7 @@ setlocal EnableDelayedExpansion
             ) else if "!choice!" GEQ "1" (
                 :: Find the corresponding platform
                 set "current_index=0"
-                for /f "tokens=*" %%i in ('dir /b /ad "!platforms_path!"') do (        
+                for /f "tokens=*" %%i in ('dir /b /ad "!platforms_path!" 2^>null') do (        
                     set /a "current_index+=1"
                     if "!current_index!"=="!choice!" (
                         set "platform=%%i"
@@ -397,7 +397,7 @@ setlocal EnableDelayedExpansion
 
     ::#region Check if the languages path is empty
     set "is_languages_path_empty=true"
-    for /f %%i in ('dir /b "!languages_path!"') do (
+    for /f %%i in ('dir /b /ad "!languages_path!" 2^>null') do (
         set "is_languages_path_empty=false"
         goto :languages_path_check_end
     )
@@ -441,7 +441,7 @@ setlocal EnableDelayedExpansion
             :: List the languages with indexes
             echo 0. New Language
             set "index=0"
-            for /f "tokens=*" %%i in ('dir /b /ad "!languages_path!"') do (
+            for /f "tokens=*" %%i in ('dir /b /ad "!languages_path!" 2^>null') do (
                 set /a "index+=1"
                 echo !index!. %%i
             )
@@ -455,7 +455,7 @@ setlocal EnableDelayedExpansion
             ) else if "!choice!" GEQ "1" (
                 :: Find the corresponding language
                 set "current_index=0"
-                for /f "tokens=*" %%i in ('dir /b /ad "!languages_path!"') do (        
+                for /f "tokens=*" %%i in ('dir /b /ad "!languages_path!" 2^>null') do (        
                     set /a "current_index+=1"
                     if "!current_index!"=="!choice!" (
                         set "language=%%i"
@@ -494,7 +494,7 @@ setlocal EnableDelayedExpansion
 
     ::#region Check if the frameworks path is empty
     set "is_frameworks_path_empty=true"
-    for /f %%i in ('dir /b "!lang_frames_path!"') do (
+    for /f %%i in ('dir /b /ad "!lang_frames_path!" 2^>null') do (
         set "is_frameworks_path_empty=false"
         goto :frameworks_path_check_end
     )
@@ -538,7 +538,7 @@ setlocal EnableDelayedExpansion
             :: List the frameworks with indexes
             echo 0. New Framework
             set "index=0"
-            for /f "tokens=*" %%i in ('dir /b /ad "!lang_frames_path!"') do (
+            for /f "tokens=*" %%i in ('dir /b /ad "!lang_frames_path!" 2^>null') do (
                 set /a "index+=1"
                 echo !index!. %%i
             )
@@ -552,7 +552,7 @@ setlocal EnableDelayedExpansion
             ) else if "!choice!" GEQ "1" (
                 :: Find the corresponding framework
                 set "current_index=0"
-                for /f "tokens=*" %%i in ('dir /b /ad "!lang_frames_path!"') do (        
+                for /f "tokens=*" %%i in ('dir /b /ad "!lang_frames_path!" 2^>null') do (        
                     set /a "current_index+=1"
                     if "!current_index!"=="!choice!" (
                         set "framework=%%i"
