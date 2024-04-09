@@ -665,7 +665,7 @@ if /i "!language!"=="php" (
 
 :: Handle framework
 ::#region
-set "framework_path=%frameworks_path\%framework%"
+set "framework_path=%frameworks_path%\%framework%"
 set "framework_project_path=%framework_path%\%sub_project_name%"
 
 if not exist "%framework_project_path%" (
