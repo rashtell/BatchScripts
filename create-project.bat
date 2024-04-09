@@ -1,4 +1,6 @@
 @echo off
+:: Dependencies - to-camel-case.bat
+
 :: Elevate the current console window to admin
 ::#region
 setlocal
