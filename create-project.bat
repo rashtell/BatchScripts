@@ -11,6 +11,8 @@ if "%errorlevel%" NEQ "0" (
     powershell -Command "Start-Process '%0' -Verb RunAs"
     exit /b
 )
+
+cd \
 endlocal
 ::#endregion
 
