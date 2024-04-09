@@ -73,8 +73,8 @@ setlocal EnableDelayedExpansion
 
     if "!project_name!"=="" (
         if "!is_projects_path_empty!"=="false" (
-        :list_projects
             :: List the projects with indexes
+            :list_projects
             echo 0. New Project
             set "index=0"
             for /f "tokens=*" %%i in ('dir /b /ad "!projects_path!" 2^>null') do (
@@ -161,8 +161,8 @@ setlocal EnableDelayedExpansion
 
     if "!sub_project_name!"=="" (
         if "!is_sub_projects_path_empty!"=="false" (
-        :list_sub_projects
             :: List the sub-projects with indexes
+            :list_sub_projects
             echo 0. New Sub-project
             set "index=0"
             for /f "tokens=*" %%i in ('dir /b /ad "!sub_projects_path!" 2^>null') do (
@@ -253,8 +253,8 @@ setlocal EnableDelayedExpansion
 
     if "!organization_name!"=="" (
         if "!is_organizations_path_empty!"=="false" (
-        :list_organizations
             :: List the organizations with indexes
+            :list_organizations
             echo 0. New Organization
             set "index=0"
             for /f "tokens=*" %%i in ('dir /b /ad "!organizations_path!" 2^>null') do (
@@ -345,8 +345,8 @@ setlocal EnableDelayedExpansion
 
     if "!platform!"=="" (
         if "!is_platforms_path_empty!"=="false" (
-        :list_platforms
             :: List the platforms with indexes
+            :list_platforms
             echo 0. New Platform
             set "index=0"
             for /f "tokens=*" %%i in ('dir /b /ad "!platforms_path!" 2^>null') do (
@@ -437,8 +437,8 @@ setlocal EnableDelayedExpansion
 
     if "!language!"=="" (
         if "!is_languages_path_empty!"=="false" (
-        :list_languages
             :: List the languages with indexes
+            :list_languages
             echo 0. New Language
             set "index=0"
             for /f "tokens=*" %%i in ('dir /b /ad "!languages_path!" 2^>null') do (
@@ -534,8 +534,8 @@ setlocal EnableDelayedExpansion
 
     if "!framework!"=="" (
         if "!is_frameworks_path_empty!"=="false" (
-        :list_frameworks
             :: List the frameworks with indexes
+            :list_frameworks
             echo 0. New Framework
             set "index=0"
             for /f "tokens=*" %%i in ('dir /b /ad "!lang_frames_path!" 2^>null') do (
