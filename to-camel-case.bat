@@ -1,4 +1,5 @@
 @echo off
+
 setlocal enabledelayedexpansion
 
 @REM set /p "input_string="
