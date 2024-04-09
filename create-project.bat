@@ -1,5 +1,5 @@
 @echo off
-:: Dependencies - to-camel-case.bat
+:: Dependencies - pascal-case.bat
 
 :: Elevate the current console window to admin
 ::#region
@@ -58,7 +58,7 @@ setlocal EnableDelayedExpansion
     )
 
     :: Convert to camel case and remove spaces
-    for /f "delims=" %%a in ('to-camel-case.bat !project_name!') do (
+    for /f "delims=" %%a in ('pascal-case.bat !project_name!') do (
         set "project_name=%%a"
     )
     :project_input_end
@@ -135,7 +135,7 @@ setlocal EnableDelayedExpansion
     goto :sub_project_input_end
     :sub_project_input_start
 
-    set /p sub_project_name=Enter sub_project name: 
+    set /p sub_project_name=Enter sub-project name: 
     if "!sub_project_name!"=="" (
         echo Sub_project name cannot be empty. Please try again.
         if "!is_sub_projects_path_empty!"=="true" (
@@ -146,7 +146,7 @@ setlocal EnableDelayedExpansion
     )
 
     :: Convert to camel case and remove spaces
-    for /f "delims=" %%a in ('to-camel-case.bat !sub_project_name!') do (
+    for /f "delims=" %%a in ('pascal-case.bat !sub_project_name!') do (
         set "sub_project_name=%%a"
     )
     :sub_project_input_end
@@ -238,7 +238,7 @@ setlocal EnableDelayedExpansion
     )
 
     :: Convert to camel case and remove spaces
-    for /f "delims=" %%a in ('to-camel-case.bat !organization_name!') do (
+    for /f "delims=" %%a in ('pascal-case.bat !organization_name!') do (
         set "organization_name=%%a"
     )
     :organization_input_end
@@ -330,7 +330,7 @@ setlocal EnableDelayedExpansion
     )
 
     :: Convert to camel case and remove spaces
-    for /f "delims=" %%a in ('to-camel-case.bat !platform!') do (
+    for /f "delims=" %%a in ('pascal-case.bat !platform!') do (
         set "platform=%%a"
     )
     :platform_input_end
@@ -422,7 +422,7 @@ setlocal EnableDelayedExpansion
     )
 
     :: Convert to camel case and remove spaces
-    for /f "delims=" %%a in ('to-camel-case.bat !language!') do (
+    for /f "delims=" %%a in ('pascal-case.bat !language!') do (
         set "language=%%a"
     )
     :language_input_end
@@ -519,7 +519,7 @@ setlocal EnableDelayedExpansion
     )
 
     :: Convert to camel case and remove spaces
-    for /f "delims=" %%a in ('to-camel-case.bat !framework!') do (
+    for /f "delims=" %%a in ('pascal-case.bat !framework!') do (
         set "framework=%%a"
     )
     :framework_input_end
