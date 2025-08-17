@@ -1,2 +1,2 @@
 @echo off
-python sollama.py %*
+python "%~dp0sollama.py" %*
