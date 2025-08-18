@@ -2,6 +2,43 @@
 """
 Ollama TTS Assistant - Python Version
 Direct API calls to ollama server with text-to-speech
+
+INSTALLATION REQUIREMENTS:
+1. Ollama (AI model server)
+2. Python TTS library (pyttsx3 or pywin32)
+
+OLLAMA INSTALLATION:
+
+Windows:
+  1. Download from: https://ollama.ai/download/windows
+  2. Run the installer (OllamaSetup.exe)
+  3. Ollama will start automatically
+  4. Open Command Prompt and run: ollama pull llama3.2
+  
+macOS:
+  1. Download from: https://ollama.ai/download/mac
+  2. Drag Ollama.app to Applications folder
+  3. Run Ollama from Applications
+  4. Open Terminal and run: ollama pull llama3.2
+  
+Linux:
+  1. Run: curl -fsSL https://ollama.ai/install.sh | sh
+  2. Start service: sudo systemctl start ollama
+  3. Pull model: ollama pull llama3.2
+
+PYTHON TTS INSTALLATION:
+  Windows: pip install pyttsx3
+  Linux/Mac: pip install pyttsx3
+
+VERIFY INSTALLATION:
+  1. Check Ollama: ollama --version
+  2. Test model: ollama run llama3.2
+  3. Check server: curl http://localhost:11434/api/tags
+
+TROUBLESHOOTING:
+  - If "connection refused": Run 'ollama serve' manually
+  - If no TTS: Install with 'pip install pyttsx3'
+  - If slow responses: Try smaller model like 'llama3.2:1b'
 """
 
 import requests
@@ -29,7 +66,7 @@ except ImportError:
 
 class OllamaTTS:
     def __init__(self, model="llama3.2", ollama_url="http://localhost:11434", 
-                 speech_rate=175, volume=1.0, save_responses=False):
+                 speech_rate=150, volume=0.8, save_responses=False):
         self.model = model
         self.ollama_url = ollama_url
         self.save_responses = save_responses
@@ -82,6 +119,81 @@ class OllamaTTS:
                 f.write(f"Server: {self.ollama_url}\n")
                 f.write(f"Model: {self.model}\n")
                 f.write("=" * 50 + "\n\n")
+    
+    def check_ollama_installation(self):
+        """Check if Ollama is installed and provide installation instructions"""
+        import subprocess
+        import platform
+        
+        try:
+            # Check if ollama command exists
+            result = subprocess.run(['ollama', '--version'], 
+                                  capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                print("✅ Ollama is installed")
+                return True
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+            pass
+        
+        # Ollama not found, show installation instructions
+        print("❌ Ollama is not installed or not in PATH")
+        print("\n" + "="*60)
+        print("OLLAMA INSTALLATION INSTRUCTIONS")
+        print("="*60)
+        
+        system = platform.system().lower()
+        
+        if system == "windows":
+            print("\n🪟 WINDOWS INSTALLATION:")
+            print("1. Download from: https://ollama.ai/download/windows")
+            print("2. Run OllamaSetup.exe installer")
+            print("3. Ollama will start automatically in system tray")
+            print("4. Open Command Prompt or PowerShell and run:")
+            print("   ollama pull llama3.2")
+            print("\nAlternative (if you have winget):")
+            print("   winget install Ollama.Ollama")
+            
+        elif system == "darwin":
+            print("\n🍎 MACOS INSTALLATION:")
+            print("1. Download from: https://ollama.ai/download/mac")
+            print("2. Drag Ollama.app to Applications folder")
+            print("3. Launch Ollama from Applications")
+            print("4. Open Terminal and run:")
+            print("   ollama pull llama3.2")
+            print("\nAlternative (if you have Homebrew):")
+            print("   brew install ollama")
+            
+        else:  # Linux
+            print("\n🐧 LINUX INSTALLATION:")
+            print("1. Run the installation script:")
+            print("   curl -fsSL https://ollama.ai/install.sh | sh")
+            print("2. Start the service:")
+            print("   sudo systemctl start ollama")
+            print("   sudo systemctl enable ollama")
+            print("3. Pull a model:")
+            print("   ollama pull llama3.2")
+            print("\nAlternative (manual):")
+            print("   # Download binary from https://github.com/ollama/ollama/releases")
+            print("   # Place in /usr/local/bin or /usr/bin")
+        
+        print("\n📋 AFTER INSTALLATION:")
+        print("1. Verify installation: ollama --version")
+        print("2. Test the model: ollama run llama3.2")
+        print("3. Check API server: curl http://localhost:11434/api/tags")
+        print("\n💡 RECOMMENDED MODELS TO TRY:")
+        print("   ollama pull llama3.2        # Good balance (4.3GB)")
+        print("   ollama pull llama3.2:1b     # Fastest, smaller (1.3GB)")
+        print("   ollama pull mistral         # Alternative model (4.1GB)")
+        print("   ollama pull codellama       # For coding tasks (3.8GB)")
+        
+        print("\n🔧 TROUBLESHOOTING:")
+        print("- If 'connection refused': Run 'ollama serve' manually")
+        print("- If slow responses: Try 'llama3.2:1b' model")
+        print("- Check if running: netstat -an | grep 11434")
+        print("- Windows: Check system tray for Ollama icon")
+        
+        print("="*60)
+        return False
     
     def test_connection(self):
         """Test connection to ollama server"""
@@ -282,6 +394,7 @@ class OllamaTTS:
                 sapi_engine.Speak(text)
             except Exception as e:
                 pass  # Silently fail
+    
     def speak_text(self, text):
         """Speak the given text using TTS - reinitialize engine each time for reliability"""
         if TTS_ENGINE != "pyttsx3" and TTS_ENGINE != "sapi":
@@ -466,7 +579,13 @@ class OllamaTTS:
         else:
             print("✅ TTS is available")
         
-        # Test connection
+        # First check if Ollama is installed at all
+        print("\nChecking Ollama installation...")
+        if not self.check_ollama_installation():
+            print("\nPlease install Ollama first, then run this script again.")
+            return
+        
+        # Test connection to ollama server
         print("\nTesting connection to ollama server...")
         try:
             server_info = self.test_connection()
@@ -474,6 +593,11 @@ class OllamaTTS:
             
             # Show available models
             models = server_info.get('models', [])
+            if not models:
+                print("\n⚠️  No models found! You need to pull a model first.")
+                print("Run: ollama pull llama3.2")
+                return
+                
             print("\nAvailable models:")
             for model in models:
                 name = model.get('name', 'Unknown')
@@ -484,7 +608,9 @@ class OllamaTTS:
                     
         except ConnectionError as e:
             print(f"❌ {e}")
-            print("Make sure ollama is running with: ollama serve")
+            print("\nOllama is installed but not running.")
+            print("Please run: ollama serve")
+            print("Then try this script again.")
             return
         
         print("\nType 'help' for commands or start asking questions!")
