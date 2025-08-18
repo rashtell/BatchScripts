@@ -66,7 +66,7 @@ except ImportError:
 
 class OllamaTTS:
     def __init__(self, model="llama3.2", ollama_url="http://localhost:11434", 
-                 speech_rate=150, volume=0.8, save_responses=False):
+                 speech_rate=175, volume=1.0, save_responses=False):
         self.model = model
         self.ollama_url = ollama_url
         self.save_responses = save_responses
@@ -308,8 +308,8 @@ class OllamaTTS:
                     # Reinitialize TTS
                     self.tts.stop()
                     self.tts = pyttsx3.init()
-                    self.tts.setProperty('rate', 150)
-                    self.tts.setProperty('volume', 0.8)
+                    self.tts.setProperty('rate', 175)
+                    self.tts.setProperty('volume', 1.0)
                     print("✅ TTS reinitialized successfully")
                 except Exception as reinit_error:
                     print(f"❌ Failed to reinitialize TTS: {reinit_error}")
@@ -688,10 +688,10 @@ def main():
                        help="Ollama model to use (default: llama3.2)")
     parser.add_argument("--url", "-u", default="http://localhost:11434",
                        help="Ollama server URL (default: http://localhost:11434)")
-    parser.add_argument("--rate", "-r", type=int, default=150,
-                       help="Speech rate (default: 150)")
-    parser.add_argument("--volume", "-v", type=float, default=0.8,
-                       help="Speech volume 0.0-1.0 (default: 0.8)")
+    parser.add_argument("--rate", "-r", type=int, default=175,
+                       help="Speech rate (default: 175)")
+    parser.add_argument("--volume", "-v", type=float, default=1.0,
+                       help="Speech volume 0.0-1.0 (default: 1.0)")
     parser.add_argument("--save", "-s", action="store_true",
                        help="Save conversation to file")
     
