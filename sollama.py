@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Ollama TTS Assistant - Python Version with Memory
+Sollama - Python Version with Memory
 Direct API calls to ollama server with text-to-speech and conversation memory
 
 INSTALLATION REQUIREMENTS:
@@ -821,7 +821,7 @@ class OllamaTTS:
     def show_help(self):
         """Show available commands and features"""
         print("\n" + "="*70)
-        print("                    OLLAMA TTS ASSISTANT HELP")
+        print("                    SOLLAMA HELP")
         print("="*70)
         
         print("\n🗣️  CONVERSATION COMMANDS:")
@@ -880,7 +880,7 @@ class OllamaTTS:
     def run(self):
         """Main conversation loop"""
         print("=" * 70)
-        print("      Ollama TTS Assistant with Memory - Python Version")
+        print("      Sollama with Memory - Python Version")
         print("=" * 70)
         print(f"Server: {self.ollama_url}")
         print(f"Model: {self.model}")
@@ -1021,7 +1021,7 @@ class OllamaTTS:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Ollama TTS Assistant with Memory")
+    parser = argparse.ArgumentParser(description="Sollama with Memory")
     parser.add_argument("--model", "-m", default="llama3.2", 
                        help="Ollama model to use (default: llama3.2)")
     parser.add_argument("--url", "-u", default="http://localhost:11434",
