@@ -40,11 +40,61 @@ TROUBLESHOOTING:
   - If no TTS: Install with 'pip install pyttsx3'
   - If slow responses: Try smaller model like 'llama3.2:1b'
 
+COMMAND LINE USAGE:
+
+Basic Usage:
+  python ollama_tts.py
+
+Common Options:
+  python ollama_tts.py --model llama3.2:1b --volume 0.5
+  python ollama_tts.py --mute --system-prompt "You are a coding expert"
+  python ollama_tts.py --load-memory my_session.json
+
+All Command Line Arguments:
+  -m, --model MODEL           Ollama model (default: llama3.2)
+  -u, --url URL              Server URL (default: http://localhost:11434)
+  -r, --rate RATE            Speech rate 50-300 (default: 175)
+  -v, --volume VOLUME        Volume 0.0-1.0 (default: 1.0)
+  --mute                     Start with audio muted
+  -s, --save                 Save conversation to timestamped file
+  -sp, --system-prompt TEXT  Custom system prompt for assistant
+  -mm, --max-memory NUM      Max conversation exchanges (default: 50)
+  -lm, --load-memory FILE    Load previous conversation memory
+
+Examples:
+  python ollama_tts.py --volume 0.3 --rate 200
+  python ollama_tts.py --mute --model mistral
+  python ollama_tts.py --system-prompt "You are a creative writing coach"
+  python ollama_tts.py --load-memory conversation_20240825.json
+
 NEW FEATURES:
   - Conversation memory: Assistant remembers previous exchanges
-  - System prompts: Configure assistant personality/behavior
+  - System prompts: Configure assistant personality/behavior  
   - Memory management: Clear, save, and load conversation history
+  - Enhanced audio: Mute, precise volume control, command line audio settings
   - Enhanced context: Better multi-turn conversations
+
+INTERACTIVE COMMANDS:
+  exit/quit/bye         - Exit the program
+  clear/new/reset       - Clear conversation memory
+  memory                - Show memory status
+  system <prompt>       - Set system prompt
+  save_memory [file]    - Save conversation memory
+  load_memory <file>    - Load conversation memory
+  models                - List available models
+  model <name>          - Switch to different model
+  repeat                - Repeat last response
+  test_tts              - Test TTS functionality
+  voice                 - List available voices
+  voice <number>        - Switch to voice number
+  faster/slower         - Adjust speech speed
+  louder/quieter        - Adjust volume by 0.1
+  volume <0.0-1.0>      - Set specific volume level
+  mute/unmute           - Mute or unmute audio
+  stream                - Toggle streaming mode on/off
+  live_tts              - Toggle live TTS during streaming
+  help                  - Show interactive help
+  <question>            - Ask ollama a question
 """
 
 import requests
@@ -450,6 +500,10 @@ class OllamaTTS:
         if not self.tts_available or not text.strip():
             return
             
+        # Check if muted
+        if hasattr(self, 'muted') and self.muted:
+            return
+            
         # Add text to TTS queue
         self.tts_queue.put(text.strip())
     
@@ -529,6 +583,11 @@ class OllamaTTS:
         """Speak the given text using TTS - reinitialize engine each time for reliability"""
         if TTS_ENGINE != "pyttsx3" and TTS_ENGINE != "sapi":
             print("⚠️ TTS not available")
+            return
+            
+        # Check if muted
+        if hasattr(self, 'muted') and self.muted:
+            print("🔇 Audio is muted")
             return
             
         # Clean the text for better TTS
@@ -702,6 +761,45 @@ class OllamaTTS:
             print(f"Volume: {self.volume:.1f}")
             return 'continue'
         
+        elif input_lower in ['mute', 'unmute']:
+            if not hasattr(self, 'muted'):
+                self.muted = False
+                self.volume_before_mute = self.volume
+            
+            if input_lower == 'mute':
+                if not self.muted:
+                    self.volume_before_mute = self.volume
+                    self.volume = 0.0
+                    self.muted = True
+                    print("🔇 Audio muted")
+                else:
+                    print("🔇 Already muted")
+            else:  # unmute
+                if self.muted:
+                    self.volume = getattr(self, 'volume_before_mute', 1.0)
+                    self.muted = False
+                    print(f"🔊 Audio unmuted - Volume: {self.volume:.1f}")
+                else:
+                    print("🔊 Audio not muted")
+            return 'continue'
+        
+        elif input_lower.startswith('volume '):
+            try:
+                volume_str = input_text[7:].strip()
+                new_volume = float(volume_str)
+                if 0.0 <= new_volume <= 1.0:
+                    self.volume = new_volume
+                    if hasattr(self, 'muted') and self.muted:
+                        self.muted = False
+                        print(f"🔊 Volume set to {self.volume:.1f} (unmuted)")
+                    else:
+                        print(f"🔊 Volume set to {self.volume:.1f}")
+                else:
+                    print("❌ Volume must be between 0.0 and 1.0")
+            except ValueError:
+                print("❌ Invalid volume value. Use: volume 0.5")
+            return 'continue'
+        
         elif input_lower == 'stream':
             self.use_streaming = not self.use_streaming
             mode = "enabled" if self.use_streaming else "disabled"
@@ -721,26 +819,63 @@ class OllamaTTS:
         return 'process'
     
     def show_help(self):
-        """Show available commands"""
-        print("\nAvailable commands:")
+        """Show available commands and features"""
+        print("\n" + "="*70)
+        print("                    OLLAMA TTS ASSISTANT HELP")
+        print("="*70)
+        
+        print("\n🗣️  CONVERSATION COMMANDS:")
+        print("  <question>            - Ask ollama a question with memory context")
         print("  exit/quit/bye         - Exit the program")
-        print("  clear/new/reset       - Clear conversation memory")
-        print("  memory                - Show memory status")
-        print("  system <prompt>       - Set system prompt")
-        print("  save_memory [file]    - Save conversation memory")
-        print("  load_memory <file>    - Load conversation memory")
-        print("  models                - List available models")
-        print("  model <name>          - Switch to different model")
-        print("  repeat                - Repeat last response")
-        print("  test_tts              - Test TTS functionality")
-        print("  voice                 - List available voices")
-        print("  voice <number>        - Switch to voice number")
-        print("  faster/slower         - Adjust speech speed")
-        print("  louder/quieter        - Adjust volume")
-        print("  stream                - Toggle streaming mode on/off")
-        print("  live_tts              - Toggle live TTS during streaming")
-        print("  help                  - Show this help")
-        print("  <question>            - Ask ollama a question")
+        print("  repeat                - Repeat last response with TTS")
+        
+        print("\n🧠  MEMORY MANAGEMENT:")
+        print("  memory                - Show current memory status")
+        print("  clear/new/reset       - Clear conversation memory (start fresh)")
+        print("  system <prompt>       - Set/view system prompt for assistant personality")
+        print("  save_memory [file]    - Save conversation memory to JSON file")
+        print("  load_memory <file>    - Load conversation memory from JSON file")
+        
+        print("\n🤖  MODEL MANAGEMENT:")
+        print("  models                - List all available Ollama models")
+        print("  model <name>          - Switch to different model (e.g., llama3.2:1b)")
+        print("  stream                - Toggle streaming/non-streaming mode")
+        
+        print("\n🔊  AUDIO CONTROLS:")
+        print("  test_tts              - Test TTS with sample text")
+        print("  mute/unmute           - Instantly mute/unmute all audio")
+        print("  volume <0.0-1.0>      - Set exact volume (e.g., volume 0.5)")
+        print("  louder/quieter        - Adjust volume by ±0.1")
+        print("  faster/slower         - Adjust speech rate by ±25")
+        print("  live_tts              - Toggle real-time TTS during streaming")
+        
+        print("\n🎭  VOICE CONTROLS:")
+        print("  voice                 - List all available TTS voices")
+        print("  voice <number>        - Switch to voice by number (e.g., voice 2)")
+        
+        print("\n💡  COMMAND LINE USAGE:")
+        print("  Start with custom settings:")
+        print("    python ollama_tts.py --volume 0.5 --mute")
+        print("    python ollama_tts.py --model llama3.2:1b --rate 200")
+        print("    python ollama_tts.py --system-prompt 'You are a coding expert'")
+        print("    python ollama_tts.py --load-memory session.json")
+        
+        print("\n📊  MEMORY FEATURES:")
+        print("  • Assistant remembers your entire conversation")
+        print("  • References previous questions and responses")
+        print("  • Maintains context across multiple exchanges")
+        print("  • Configurable memory limit (default: 50 exchanges)")
+        print("  • Persistent memory save/load functionality")
+        
+        print("\n🎵  AUDIO FEATURES:")
+        print("  • Real-time TTS during streaming responses")
+        print("  • Multiple TTS engine support (pyttsx3, SAPI)")
+        print("  • Voice selection and customization")
+        print("  • Precise volume and rate control")
+        print("  • Smart mute system with volume memory")
+        print("  • Command line audio configuration")
+        
+        print("\n" + "="*70)
     
     def run(self):
         """Main conversation loop"""
@@ -752,10 +887,14 @@ class OllamaTTS:
         print(f"Memory: Max {self.memory.max_history} exchanges")
         print(f"System prompt: {len(self.memory.system_prompt)} chars")
         
+        # Display audio status
         if not self.tts_available:
             print("⚠️  TTS not available - responses will be text-only")
         else:
-            print("✅ TTS is available")
+            if hasattr(self, 'muted') and self.muted:
+                print(f"🔇 TTS muted (volume was {getattr(self, 'volume_before_mute', 1.0):.1f})")
+            else:
+                print(f"🔊 TTS volume: {self.volume:.1f}")
         
         # First check if Ollama is installed at all
         print("\nChecking Ollama installation...")
@@ -891,6 +1030,8 @@ def main():
                        help="Speech rate (default: 175)")
     parser.add_argument("--volume", "-v", type=float, default=1.0,
                        help="Speech volume 0.0-1.0 (default: 1.0)")
+    parser.add_argument("--mute", action="store_true",
+                       help="Start with audio muted")
     parser.add_argument("--save", "-s", action="store_true",
                        help="Save conversation to file")
     parser.add_argument("--system-prompt", "-sp", type=str,
@@ -902,6 +1043,11 @@ def main():
     
     args = parser.parse_args()
     
+    # Validate volume range
+    if not (0.0 <= args.volume <= 1.0):
+        print("❌ Error: Volume must be between 0.0 and 1.0")
+        sys.exit(1)
+    
     # Create the assistant
     assistant = OllamaTTS(
         model=args.model,
@@ -912,6 +1058,13 @@ def main():
         system_prompt=args.system_prompt,
         max_memory=args.max_memory
     )
+    
+    # Set mute state if requested
+    if args.mute:
+        assistant.volume_before_mute = args.volume
+        assistant.volume = 0.0
+        assistant.muted = True
+        print("🔇 Started with audio muted")
     
     # Load memory if specified
     if args.load_memory:
