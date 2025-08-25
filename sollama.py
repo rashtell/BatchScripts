@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Ollama TTS Assistant - Python Version
-Direct API calls to ollama server with text-to-speech
+Ollama TTS Assistant - Python Version with Memory
+Direct API calls to ollama server with text-to-speech and conversation memory
 
 INSTALLATION REQUIREMENTS:
 1. Ollama (AI model server)
@@ -39,6 +39,12 @@ TROUBLESHOOTING:
   - If "connection refused": Run 'ollama serve' manually
   - If no TTS: Install with 'pip install pyttsx3'
   - If slow responses: Try smaller model like 'llama3.2:1b'
+
+NEW FEATURES:
+  - Conversation memory: Assistant remembers previous exchanges
+  - System prompts: Configure assistant personality/behavior
+  - Memory management: Clear, save, and load conversation history
+  - Enhanced context: Better multi-turn conversations
 """
 
 import requests
@@ -49,7 +55,9 @@ import time
 import threading
 import queue
 import re
+import os
 from datetime import datetime
+from typing import List, Dict, Any, Optional
 
 # Try to import TTS libraries
 TTS_ENGINE = None
@@ -64,15 +72,126 @@ except ImportError:
         print("No TTS library found. Install with: pip install pyttsx3")
         print("Or on Windows: pip install pywin32")
 
+class ConversationMemory:
+    """Manages conversation history and system prompts"""
+    
+    def __init__(self, system_prompt: str = None, max_history: int = 50):
+        self.system_prompt = system_prompt or self.get_default_system_prompt()
+        self.conversation_history: List[Dict[str, str]] = []
+        self.max_history = max_history
+        self.memory_file = None
+        self.conversation_start_time = datetime.now()
+    
+    @staticmethod
+    def get_default_system_prompt() -> str:
+        """Default system prompt for the assistant"""
+        return """You are a helpful AI assistant with text-to-speech capabilities. You provide clear, concise, and engaging responses. When speaking, you use natural conversational language that sounds good when read aloud. You remember previous parts of our conversation and can reference them when relevant."""
+    
+    def add_exchange(self, user_message: str, assistant_response: str):
+        """Add a user-assistant exchange to memory"""
+        self.conversation_history.append({
+            "role": "user",
+            "content": user_message
+        })
+        self.conversation_history.append({
+            "role": "assistant", 
+            "content": assistant_response
+        })
+        
+        # Trim history if too long (keep system prompt + recent exchanges)
+        if len(self.conversation_history) > self.max_history:
+            # Remove oldest user-assistant pair
+            self.conversation_history = self.conversation_history[2:]
+    
+    def get_full_context(self) -> List[Dict[str, str]]:
+        """Get full conversation context including system prompt"""
+        context = [{"role": "system", "content": self.system_prompt}]
+        context.extend(self.conversation_history)
+        return context
+    
+    def clear_history(self):
+        """Clear conversation history but keep system prompt"""
+        self.conversation_history = []
+        self.conversation_start_time = datetime.now()
+        print("🧹 Conversation memory cleared")
+    
+    def set_system_prompt(self, new_prompt: str):
+        """Update the system prompt"""
+        self.system_prompt = new_prompt
+        print("🎭 System prompt updated")
+    
+    def get_memory_summary(self) -> str:
+        """Get a summary of current memory state"""
+        exchanges = len(self.conversation_history) // 2
+        duration = datetime.now() - self.conversation_start_time
+        
+        summary = f"Memory: {exchanges} exchanges"
+        if exchanges > 0:
+            summary += f", {duration.total_seconds()/60:.1f}min session"
+        
+        return summary
+    
+    def save_memory(self, filepath: str):
+        """Save current memory to file"""
+        try:
+            memory_data = {
+                "system_prompt": self.system_prompt,
+                "conversation_history": self.conversation_history,
+                "conversation_start_time": self.conversation_start_time.isoformat(),
+                "saved_at": datetime.now().isoformat()
+            }
+            
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(memory_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"💾 Memory saved to: {filepath}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Failed to save memory: {e}")
+            return False
+    
+    def load_memory(self, filepath: str):
+        """Load memory from file"""
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                memory_data = json.load(f)
+            
+            self.system_prompt = memory_data.get("system_prompt", self.get_default_system_prompt())
+            self.conversation_history = memory_data.get("conversation_history", [])
+            
+            # Try to parse the start time
+            try:
+                self.conversation_start_time = datetime.fromisoformat(
+                    memory_data.get("conversation_start_time", datetime.now().isoformat())
+                )
+            except:
+                self.conversation_start_time = datetime.now()
+            
+            exchanges = len(self.conversation_history) // 2
+            print(f"📁 Memory loaded: {exchanges} previous exchanges")
+            return True
+            
+        except FileNotFoundError:
+            print(f"❌ Memory file not found: {filepath}")
+            return False
+        except Exception as e:
+            print(f"❌ Failed to load memory: {e}")
+            return False
+
 class OllamaTTS:
     def __init__(self, model="llama3.2", ollama_url="http://localhost:11434", 
-                 speech_rate=175, volume=1.0, save_responses=False):
+                 speech_rate=175, volume=1.0, save_responses=False,
+                 system_prompt=None, max_memory=50):
         self.model = model
         self.ollama_url = ollama_url
         self.save_responses = save_responses
         self.last_response = ""
         self.question_count = 0
         self.conversation_file = None
+        
+        # Initialize conversation memory
+        self.memory = ConversationMemory(system_prompt, max_memory)
         
         # Initialize TTS settings
         self.speech_rate = speech_rate
@@ -118,6 +237,7 @@ class OllamaTTS:
                 f.write(f"Ollama Conversation - {datetime.now()}\n")
                 f.write(f"Server: {self.ollama_url}\n")
                 f.write(f"Model: {self.model}\n")
+                f.write(f"System Prompt: {self.memory.system_prompt}\n")
                 f.write("=" * 50 + "\n\n")
     
     def check_ollama_installation(self):
@@ -213,11 +333,18 @@ class OllamaTTS:
         except requests.exceptions.RequestException as e:
             raise Exception(f"Error getting models: {e}")
     
-    def ask_ollama(self, prompt):
-        """Send prompt to ollama API with optional streaming"""
+    def ask_ollama_with_context(self, prompt: str) -> str:
+        """Send prompt with full conversation context to ollama API"""
+        # Get full conversation context
+        messages = self.memory.get_full_context()
+        messages.append({"role": "user", "content": prompt})
+        
+        # For Ollama, we need to format this as a single prompt with context
+        formatted_prompt = self.format_messages_for_ollama(messages)
+        
         request_data = {
             "model": self.model,
-            "prompt": prompt,
+            "prompt": formatted_prompt,
             "stream": self.use_streaming
         }
         
@@ -234,7 +361,7 @@ class OllamaTTS:
                 # Handle streaming response with real-time TTS
                 full_response = ""
                 text_buffer = ""
-                print(f"\n🤖 Ollama ({self.model}):")
+                print(f"\n🤖 Ollama ({self.model}) - {self.memory.get_memory_summary()}:")
                 
                 # Start TTS thread if speaking while streaming
                 if self.speak_while_streaming and self.tts_available:
@@ -287,33 +414,36 @@ class OllamaTTS:
                 # Handle non-streaming response
                 result = response.json()
                 full_response = result.get('response', '')
-                print(f"\n🤖 Ollama ({self.model}):")
+                print(f"\n🤖 Ollama ({self.model}) - {self.memory.get_memory_summary()}:")
                 print(full_response)
                 return full_response
             
         except requests.exceptions.RequestException as e:
             raise Exception(f"API request failed: {e}")
     
-    def reinitialize_tts_if_needed(self):
-        """Reinitialize TTS if it seems to have stopped working"""
-        if TTS_ENGINE == "pyttsx3" and self.tts_initialized:
-            try:
-                # Test if TTS is still working by checking properties
-                current_rate = self.tts.getProperty('rate')
-                if current_rate is None:
-                    raise Exception("TTS engine appears to be dead")
-            except Exception as e:
-                print(f"🔧 TTS needs reinitialization: {e}")
-                try:
-                    # Reinitialize TTS
-                    self.tts.stop()
-                    self.tts = pyttsx3.init()
-                    self.tts.setProperty('rate', 175)
-                    self.tts.setProperty('volume', 1.0)
-                    print("✅ TTS reinitialized successfully")
-                except Exception as reinit_error:
-                    print(f"❌ Failed to reinitialize TTS: {reinit_error}")
-                    self.tts_initialized = False
+    def format_messages_for_ollama(self, messages: List[Dict[str, str]]) -> str:
+        """Format conversation messages for Ollama's prompt format"""
+        formatted_parts = []
+        
+        for message in messages:
+            role = message["role"]
+            content = message["content"]
+            
+            if role == "system":
+                formatted_parts.append(f"System: {content}")
+            elif role == "user":
+                formatted_parts.append(f"Human: {content}")
+            elif role == "assistant":
+                formatted_parts.append(f"Assistant: {content}")
+        
+        # Add prompt for the assistant to respond
+        formatted_parts.append("Assistant:")
+        
+        return "\n\n".join(formatted_parts)
+    
+    def ask_ollama(self, prompt):
+        """Legacy method - redirects to context-aware version"""
+        return self.ask_ollama_with_context(prompt)
     
     def speak_text_immediate(self, text):
         """Speak text immediately in a separate thread"""
@@ -444,6 +574,46 @@ class OllamaTTS:
         if input_lower in ['exit', 'quit', 'bye']:
             return 'exit'
         
+        elif input_lower in ['clear', 'new', 'reset']:
+            self.memory.clear_history()
+            return 'continue'
+        
+        elif input_lower == 'memory':
+            exchanges = len(self.memory.conversation_history) // 2
+            print(f"\n🧠 Memory Status:")
+            print(f"   Exchanges: {exchanges}")
+            print(f"   Max history: {self.memory.max_history}")
+            print(f"   System prompt: {len(self.memory.system_prompt)} chars")
+            if exchanges > 0:
+                duration = datetime.now() - self.memory.conversation_start_time
+                print(f"   Session time: {duration.total_seconds()/60:.1f} minutes")
+            return 'continue'
+        
+        elif input_lower.startswith('system '):
+            new_prompt = input_text[7:].strip()
+            if new_prompt:
+                self.memory.set_system_prompt(new_prompt)
+                print(f"System prompt set to: {new_prompt[:100]}{'...' if len(new_prompt) > 100 else ''}")
+            else:
+                print(f"Current system prompt: {self.memory.system_prompt}")
+            return 'continue'
+        
+        elif input_lower.startswith('save_memory '):
+            filename = input_text[12:].strip()
+            if not filename:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"ollama_memory_{timestamp}.json"
+            self.memory.save_memory(filename)
+            return 'continue'
+        
+        elif input_lower.startswith('load_memory '):
+            filename = input_text[12:].strip()
+            if filename:
+                self.memory.load_memory(filename)
+            else:
+                print("Please specify a filename: load_memory filename.json")
+            return 'continue'
+        
         elif input_lower == 'models':
             try:
                 models = self.get_models()
@@ -553,26 +723,34 @@ class OllamaTTS:
     def show_help(self):
         """Show available commands"""
         print("\nAvailable commands:")
-        print("  exit/quit/bye    - Exit the program")
-        print("  models           - List available models")
-        print("  model <name>     - Switch to different model")
-        print("  repeat           - Repeat last response")
-        print("  test_tts         - Test TTS functionality")
-        print("  voice            - List available voices")
-        print("  voice <number>   - Switch to voice number")
-        print("  faster/slower    - Adjust speech speed")
-        print("  louder/quieter   - Adjust volume")
-        print("  stream           - Toggle streaming mode on/off")
-        print("  help             - Show this help")
-        print("  <question>       - Ask ollama a question")
+        print("  exit/quit/bye         - Exit the program")
+        print("  clear/new/reset       - Clear conversation memory")
+        print("  memory                - Show memory status")
+        print("  system <prompt>       - Set system prompt")
+        print("  save_memory [file]    - Save conversation memory")
+        print("  load_memory <file>    - Load conversation memory")
+        print("  models                - List available models")
+        print("  model <name>          - Switch to different model")
+        print("  repeat                - Repeat last response")
+        print("  test_tts              - Test TTS functionality")
+        print("  voice                 - List available voices")
+        print("  voice <number>        - Switch to voice number")
+        print("  faster/slower         - Adjust speech speed")
+        print("  louder/quieter        - Adjust volume")
+        print("  stream                - Toggle streaming mode on/off")
+        print("  live_tts              - Toggle live TTS during streaming")
+        print("  help                  - Show this help")
+        print("  <question>            - Ask ollama a question")
     
     def run(self):
         """Main conversation loop"""
-        print("=" * 60)
-        print("         Ollama TTS Assistant - Python Version")
-        print("=" * 60)
+        print("=" * 70)
+        print("      Ollama TTS Assistant with Memory - Python Version")
+        print("=" * 70)
         print(f"Server: {self.ollama_url}")
         print(f"Model: {self.model}")
+        print(f"Memory: Max {self.memory.max_history} exchanges")
+        print(f"System prompt: {len(self.memory.system_prompt)} chars")
         
         if not self.tts_available:
             print("⚠️  TTS not available - responses will be text-only")
@@ -613,10 +791,17 @@ class OllamaTTS:
             print("Then try this script again.")
             return
         
-        print("\nType 'help' for commands or start asking questions!")
+        print("\n🧠 Memory Features:")
+        print("  • Conversation context is preserved across questions")
+        print("  • Use 'clear' to start fresh conversation")
+        print("  • Use 'memory' to check current memory status")
+        print("  • Use 'system <prompt>' to set assistant personality")
+        print("  • Use 'save_memory' / 'load_memory' for persistence")
+        
+        print("\nType 'help' for all commands or start asking questions!")
         print("Type 'test_tts' to test text-to-speech")
         print("Type 'exit' to quit")
-        print("=" * 60)
+        print("=" * 70)
         
         # Main conversation loop
         try:
@@ -635,16 +820,19 @@ class OllamaTTS:
                     elif command_result == 'continue':
                         continue
                     
-                    # Process as question
+                    # Process as question with memory context
                     self.question_count += 1
                     mode_text = "streaming" if self.use_streaming else "non-streaming"
                     print(f"\n🤔 Asking ollama ({mode_text})...")
                     
                     try:
-                        response = self.ask_ollama(user_input)
+                        response = self.ask_ollama_with_context(user_input)
                         
                         if response and response.strip():
-                            # Save conversation
+                            # Add exchange to memory
+                            self.memory.add_exchange(user_input, response)
+                            
+                            # Save conversation to file
                             self.save_conversation(user_input, response)
                             
                             # Store for repeat function
@@ -680,10 +868,21 @@ class OllamaTTS:
             print("\n🎉 Session ended. Thank you!")
             if self.conversation_file:
                 print(f"💾 Conversation saved to: {self.conversation_file}")
+            
+            # Offer to save memory
+            if len(self.memory.conversation_history) > 0:
+                try:
+                    save_choice = input("Save conversation memory? (y/N): ").lower().strip()
+                    if save_choice in ['y', 'yes']:
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        memory_file = f"ollama_memory_{timestamp}.json"
+                        self.memory.save_memory(memory_file)
+                except (KeyboardInterrupt, EOFError):
+                    print("\n👋 Goodbye!")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Ollama TTS Assistant")
+    parser = argparse.ArgumentParser(description="Ollama TTS Assistant with Memory")
     parser.add_argument("--model", "-m", default="llama3.2", 
                        help="Ollama model to use (default: llama3.2)")
     parser.add_argument("--url", "-u", default="http://localhost:11434",
@@ -694,17 +893,29 @@ def main():
                        help="Speech volume 0.0-1.0 (default: 1.0)")
     parser.add_argument("--save", "-s", action="store_true",
                        help="Save conversation to file")
+    parser.add_argument("--system-prompt", "-sp", type=str,
+                       help="Custom system prompt for the assistant")
+    parser.add_argument("--max-memory", "-mm", type=int, default=50,
+                       help="Maximum conversation exchanges to remember (default: 50)")
+    parser.add_argument("--load-memory", "-lm", type=str,
+                       help="Load conversation memory from file")
     
     args = parser.parse_args()
     
-    # Create and run the assistant
+    # Create the assistant
     assistant = OllamaTTS(
         model=args.model,
         ollama_url=args.url,
         speech_rate=args.rate,
         volume=args.volume,
-        save_responses=args.save
+        save_responses=args.save,
+        system_prompt=args.system_prompt,
+        max_memory=args.max_memory
     )
+    
+    # Load memory if specified
+    if args.load_memory:
+        assistant.memory.load_memory(args.load_memory)
     
     assistant.run()
 
